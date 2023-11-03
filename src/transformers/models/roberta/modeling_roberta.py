@@ -62,6 +62,35 @@ ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST = [
 ]
 
 
+@add_start_docstrings
+# Copied from transformers.models.bert.modeling_bert.BertDummyModel with Bert->RobertaBert
+class RobertaBertDummyModel:
+    # dummy init
+    def __init__(self, a=1, b=2):
+        self.a = a
+        self.b = b
+
+    a = 3
+
+    b = 4
+
+
+
+    c = 5
+
+    @add_code_sample_docstrings
+    # Copied from transformers.models.gpt2.modeling_gpt2.GPT2DummyModel.forward
+    def forward(self, c):
+        return self.a * self.b + c
+
+    # ignore copied
+    def dummy_forward(self, c):
+        return self.a * self.b + c
+
+    # ignore copied
+    def forward_to_be_ignored(self, c):
+        return self.a * self.b + c + 3
+
 class RobertaEmbeddings(nn.Module):
     """
     Same as BertEmbeddings with a tiny tweak for positional embeddings indexing.
