@@ -447,6 +447,28 @@ def replace_code(code: str, replace_pattern: List[str]) -> str:
     return code
 
 
+def foo(object_name, filename, replace_pattern):
+
+    base_path = TRANSFORMERS_PATH if not filename.startswith("tests") else MODEL_TEST_PATH
+    theoretical_code, (target_lines, target_start_index, target_end_index) = find_code_in_transformers(object_name, base_path=base_path, return_indices=True)
+    theoretical_indent = get_indent(theoretical_code)
+
+    # Split the theoretical code into blocks
+    # `theoretical_indent` is the indent of the class/def declaration, but `theoretical_code_splits` expect the
+    # indent level of the class/def body.
+    theoretical_code_splits = split_code_into_blocks(target_lines, target_start_index, target_end_index, len(theoretical_indent) + 4, backtrace=True)
+
+    # theoretical code replaced by the patterns
+    theoretical_code_blocks = OrderedDict()
+    for name, start, end in theoretical_code_splits:
+        name = replace_code(name, replace_pattern)
+        code = ''.join(target_lines[start:end])
+        code = replace_code(code, replace_pattern)
+        theoretical_code_blocks[name] = code
+
+    return theoretical_code, theoretical_code_blocks
+
+
 def is_copy_consistent(filename: str, overwrite: bool = False) -> Optional[List[Tuple[str, int]]]:
     """
     Check if the code commented as a copy in a file matches the original.
@@ -479,14 +501,8 @@ def is_copy_consistent(filename: str, overwrite: bool = False) -> Optional[List[
         # There is some copied code here, let's retrieve the original.
         indent, object_name, replace_pattern = search.groups()
 
-        base_path = TRANSFORMERS_PATH if not filename.startswith("tests") else MODEL_TEST_PATH
-        theoretical_code, (target_lines, target_start_index, target_end_index) = find_code_in_transformers(object_name, base_path=base_path, return_indices=True)
+        theoretical_code, theoretical_code_blocks = foo(object_name, filename)
         theoretical_indent = get_indent(theoretical_code)
-
-        # Split the theoretical code into blocks
-        # `theoretical_indent` is the indent of the class/def declaration, but `theoretical_code_splits` expect the
-        # indent level of the class/def body.
-        theoretical_code_splits = split_code_into_blocks(target_lines, target_start_index, target_end_index, len(theoretical_indent) + 4, backtrace=True)
 
         # `start_index` is the index of the first line after `# Copied ...` (the func/class declaration)
         # (`indent != theoretical_indent` doesn't seem to occur so far, not sure what's the case for.)
@@ -512,14 +528,6 @@ def is_copy_consistent(filename: str, overwrite: bool = False) -> Optional[List[
 
         # Split the observed code into blocks
         observed_code_splits = split_code_into_blocks(lines, start_index, line_index, len(indent), backtrace=True)
-
-        # theoretical code replaced by the patterns
-        theoretical_code_blocks = OrderedDict()
-        for name, start, end in theoretical_code_splits:
-            name = replace_code(name, replace_pattern)
-            code = ''.join(target_lines[start:end])
-            code = replace_code(code, replace_pattern)
-            theoretical_code_blocks[name] = code
 
         # observed code
         observed_code_blocks = OrderedDict()
